@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <title>Nursing FiO2 Calculator</title>
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #222;
+      --card: #f5f5f5; --accent: #2e3a4e;
+    }
+    [data-theme="dark"] {
+      --bg: #222; --fg: #eef;
+      --card: #333; --accent: #9ab;
+    }
+    body {
+      margin:0; padding:0;
+      background: var(--bg); color: var(--fg);
+      font-family: sans-serif;
+      display:flex; flex-direction:column; align-items:center;
+      min-height:100vh;
+    }
+    header {
+      background: var(--accent); color:#fff;
+      width:100%; text-align:center; padding:1rem 0;
+    }
+    main {
+      flex:1; width:100%; max-width:400px; padding:1rem;
+    }
+    .card {
+      background: var(--card); padding:1rem; border-radius:8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2); margin-bottom:1rem;
+    }
+    label { display:block; margin-top:1rem; }
+    select, button { width:100%; padding:0.5rem; margin-top:0.5rem; }
+    #result { font-size:1.5rem; margin-top:1rem; text-align:center; }
+    #toggle { position:fixed; top:1rem; right:1rem; }
+  </style>
+</head>
+<body>
+  <header><h1>Nursing FiO₂ Calculator</h1></header>
+  <button id="toggle">🌓</button>
+  <main>
+    <div class="card">
+      <label for="mode">Delivery Mode</label>
+      <select id="mode">
+        <option value="RA">Room Air</option>
+        <option value="NC">Nasal Cannula</option>
+        <option value="HM">Hudson Mask</option>
+        <option value="NRB">Non-Rebreather</option>
+      </select>
+      <label for="flow">Flow Rate (L/min)</label>
+      <select id="flow"></select>
+      <div id="result">FiO₂: –</div>
+    </div>
+  </main>
+
+  <script>
+    const flows = {
+      RA: [0],
+      NC: [1,2,3,4],
+      HM: [4,5,6,7,8,9,10],
+      NRB: [10,11,12,13,14,15]
+    };
+
+    function calcFiO2(mode, flow) {
+      if (mode === 'RA') return 21;
+      if (mode === 'NC') return 21 + flow * 4;
+      if (mode === 'HM') return 35 + (flow-4) * 3;
+      if (mode === 'NRB') return 60 + (flow-10) * 2;
+      return 21;
+    }
+
+    const modeEl = document.getElementById('mode');
+    const flowEl = document.getElementById('flow');
+    const resEl  = document.getElementById('result');
+
+    function updateFlowOptions() {
+      const m = modeEl.value;
+      flowEl.innerHTML = flows[m].map(f =>
+        `<option value="${f}">${f}</option>`
+      ).join('');
+      updateResult();
+    }
+    function updateResult() {
+      const fi = calcFiO2(modeEl.value, +flowEl.value);
+      resEl.textContent = `FiO₂: ${fi}%`;
+    }
+    modeEl.addEventListener('change', updateFlowOptions);
+    flowEl.addEventListener('change', updateResult);
+
+    // dark mode toggle + system preference
+    const toggle = document.getElementById('toggle');
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+    }
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let theme = localStorage.getItem('theme') || (sysDark ? 'dark' : 'light');
+    applyTheme(theme);
+    toggle.textContent = theme==='dark'? '🌞':'🌙';
+    toggle.onclick = () => {
+      theme = theme==='dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', theme);
+      applyTheme(theme);
+      toggle.textContent = theme==='dark'? '🌞':'🌙';
+    };
+
+    updateFlowOptions();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
